@@ -2,13 +2,24 @@ from __future__ import annotations
 
 from typing import Any
 
+from googleapiclient.errors import HttpError
+
 from app.utils.logging import get_logger
 
 
 def list_calendars(service: Any) -> list[dict]:
     logger = get_logger()
     logger.debug("Calling calendarList().list()")
-    result = service.calendarList().list().execute()
+    try:
+        result = service.calendarList().list().execute()
+    except HttpError as exc:
+        if exc.resp.status == 403:
+            logger.warning(
+                "calendarList.list returned 403 (missing calendar.readonly scope), "
+                "falling back to primary calendar only"
+            )
+            return [{"id": "primary", "summary": "Primary"}]
+        raise
     items = result.get("items", [])
     logger.debug("calendarList returned %d items", len(items))
     return items
