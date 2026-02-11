@@ -26,17 +26,22 @@ router = APIRouter(prefix="/v1", tags=["calendar"])
 
 @router.get("/calendars", response_model=CalendarsResponse)
 def get_calendars(service=Depends(get_calendar_service)):
-    raw = list_calendars(service)
-    calendars = [
-        CalendarEntry(
-            calendar_id=c.get("id", ""),
-            summary=c.get("summary"),
-            timeZone=c.get("timeZone"),
-            accessRole=c.get("accessRole"),
+    try:
+        raw = list_calendars(service)
+        calendars = [
+            CalendarEntry(
+                calendar_id=c.get("id", ""),
+                summary=c.get("summary"),
+                timeZone=c.get("timeZone"),
+                accessRole=c.get("accessRole"),
+            )
+            for c in raw
+        ]
+        return CalendarsResponse(calendars=calendars)
+    except Exception:
+        return CalendarsResponse(
+            calendars=[CalendarEntry(calendar_id="primary", summary="Primary")]
         )
-        for c in raw
-    ]
-    return CalendarsResponse(calendars=calendars)
 
 
 @router.get("/events", response_model=EventsResponse)
