@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_auth import router as auth_router
 from app.api.routes_calendar import router as calendar_router
@@ -11,6 +12,14 @@ app = FastAPI(
     title="Calendar Read API",
     version="1.0.0",
     description="Read-only access to Google Calendar with normalized JSON responses.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.add_exception_handler(CalendarAPIError, calendar_api_error_handler)
