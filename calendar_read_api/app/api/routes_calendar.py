@@ -143,8 +143,8 @@ def get_snapshot(
     include_cancelled: bool = Query(default=False),
     max_results: int = Query(default=250),
     redact_private: bool = Query(default=True),
-    workday_start: str = Query(default="08:00"),
-    workday_end: str = Query(default="18:00"),
+    workday_start: str | None = Query(default=None, description="e.g. 08:00 — clips gaps to start of workday"),
+    workday_end: str | None = Query(default=None, description="e.g. 18:00 — clips gaps to end of workday"),
     min_gap_minutes: int = Query(default=0),
     service=Depends(get_calendar_service),
 ):
