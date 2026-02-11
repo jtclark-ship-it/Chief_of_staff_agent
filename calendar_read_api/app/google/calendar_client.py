@@ -2,10 +2,16 @@ from __future__ import annotations
 
 from typing import Any
 
+from app.utils.logging import get_logger
+
 
 def list_calendars(service: Any) -> list[dict]:
+    logger = get_logger()
+    logger.debug("Calling calendarList().list()")
     result = service.calendarList().list().execute()
-    return result.get("items", [])
+    items = result.get("items", [])
+    logger.debug("calendarList returned %d items", len(items))
+    return items
 
 
 def list_events(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -7,9 +8,11 @@ from googleapiclient.discovery import build
 from app.auth.token_store import get_token_store
 from app.config import get_settings
 from app.utils.errors import NotAuthorized
+from app.utils.logging import get_logger
 
 
 def get_calendar_service():
+    logger = get_logger()
     settings = get_settings()
     store = get_token_store(settings.TOKEN_STORE_TYPE, settings.TOKEN_STORE_PATH)
     token_data = store.load()
@@ -27,7 +30,12 @@ def get_calendar_service():
     )
 
     if creds.expired and creds.refresh_token:
-        creds.refresh(Request())
+        try:
+            creds.refresh(Request())
+        except RefreshError as exc:
+            logger.error("Token refresh failed: %s", exc)
+            store.clear()
+            raise NotAuthorized("Token expired and refresh failed. Visit /auth/start to re-authorize.")
         store.save({
             "token": creds.token,
             "refresh_token": creds.refresh_token,
