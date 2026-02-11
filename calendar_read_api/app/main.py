@@ -66,3 +66,57 @@ app.include_router(calendar_router)
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/debug/calendars")
+def debug_calendars():
+    """Temporary debug endpoint — returns 200 with diagnostic info."""
+    import os
+    from app.config import get_settings
+    from app.auth.token_store import get_token_store
+
+    settings = get_settings()
+    result = {
+        "cwd": os.getcwd(),
+        "token_store_path": settings.TOKEN_STORE_PATH,
+        "resolved_path": os.path.abspath(settings.TOKEN_STORE_PATH),
+        "token_file_exists": os.path.exists(settings.TOKEN_STORE_PATH),
+    }
+
+    store = get_token_store(settings.TOKEN_STORE_TYPE, settings.TOKEN_STORE_PATH)
+    token_data = store.load()
+    result["token_loaded"] = token_data is not None
+
+    if not token_data:
+        result["error"] = "No token found"
+        return result
+
+    try:
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
+
+        creds = Credentials(
+            token=token_data.get("token"),
+            refresh_token=token_data.get("refresh_token"),
+            token_uri=token_data.get("token_uri"),
+            client_id=token_data.get("client_id"),
+            client_secret=token_data.get("client_secret"),
+            scopes=token_data.get("scopes"),
+        )
+        result["creds_valid"] = creds.valid
+        result["creds_expired"] = creds.expired
+
+        if creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+            result["refreshed"] = True
+
+        service = build("calendar", "v3", credentials=creds)
+        raw = service.calendarList().list().execute()
+        result["calendars"] = raw.get("items", [])
+        result["success"] = True
+    except Exception as exc:
+        result["error"] = str(exc)
+        result["traceback"] = traceback.format_exc()
+
+    return result
