@@ -5,9 +5,11 @@ from app.models.schemas import NormalizedEvent
 
 def redact_event(event: NormalizedEvent) -> NormalizedEvent:
     if event.visibility == "private":
-        event.summary = "Busy"
-        event.summary_redacted = True
-        event.location = None
+        return event.model_copy(update={
+            "summary": "Busy",
+            "summary_redacted": True,
+            "location": None,
+        })
     return event
 
 

@@ -79,9 +79,16 @@ def find_conflicts(events: list[NormalizedEvent]) -> list[Conflict]:
     return conflicts
 
 
+def _parse_hhmm(s: str) -> tuple[int, int]:
+    parts = s.split(":")
+    return int(parts[0]), int(parts[1])
+
+
 def find_gaps(
     events: list[NormalizedEvent],
     min_gap_minutes: int = 0,
+    workday_start: str | None = None,
+    workday_end: str | None = None,
 ) -> list[Gap]:
     timed = [
         e for e in events
@@ -106,11 +113,24 @@ def find_gaps(
         current_end = parsed[i][1]
         next_start = parsed[i + 1][0]
         if next_start > current_end:
-            gap_minutes = int((next_start - current_end).total_seconds() / 60)
+            gap_start = current_end
+            gap_end = next_start
+
+            if workday_start and workday_end:
+                ws_h, ws_m = _parse_hhmm(workday_start)
+                we_h, we_m = _parse_hhmm(workday_end)
+                day_start = gap_start.replace(hour=ws_h, minute=ws_m, second=0, microsecond=0)
+                day_end = gap_start.replace(hour=we_h, minute=we_m, second=0, microsecond=0)
+                gap_start = max(gap_start, day_start)
+                gap_end = min(gap_end, day_end)
+                if gap_end <= gap_start:
+                    continue
+
+            gap_minutes = int((gap_end - gap_start).total_seconds() / 60)
             if gap_minutes >= min_gap_minutes:
                 gaps.append(Gap(
-                    start=current_end.isoformat(),
-                    end=next_start.isoformat(),
+                    start=gap_start.isoformat(),
+                    end=gap_end.isoformat(),
                     minutes=gap_minutes,
                 ))
 

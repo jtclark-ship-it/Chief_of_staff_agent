@@ -55,3 +55,9 @@ class TestRedaction:
         result = redact_events(events, redact_private=True)
         assert result[0].start == "2025-06-11T09:00:00-06:00"
         assert result[0].end == "2025-06-11T09:30:00-06:00"
+
+    def test_redaction_does_not_mutate_original(self):
+        events = [_make_event(visibility="private", summary="Secret", location="Room A")]
+        redact_events(events, redact_private=True)
+        assert events[0].summary == "Secret"
+        assert events[0].location == "Room A"

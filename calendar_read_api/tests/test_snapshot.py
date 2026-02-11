@@ -131,6 +131,34 @@ class TestFindGaps:
         gaps = find_gaps(events, min_gap_minutes=0)
         assert len(gaps) == 0
 
+    def test_workday_clips_gap(self):
+        # Gap from 07:00-11:30, workday 08:00-18:00 → clipped to 08:00-11:30 = 210 min
+        events = [
+            _event("e1", "2025-06-11T06:00:00-06:00", "2025-06-11T07:00:00-06:00"),
+            _event("e2", "2025-06-11T11:30:00-06:00", "2025-06-11T12:00:00-06:00"),
+        ]
+        gaps = find_gaps(events, min_gap_minutes=0, workday_start="08:00", workday_end="18:00")
+        assert len(gaps) == 1
+        assert gaps[0].minutes == 210
+
+    def test_workday_excludes_gap_outside_hours(self):
+        # Gap from 18:30-20:00, workday ends at 18:00 → excluded
+        events = [
+            _event("e1", "2025-06-11T17:00:00-06:00", "2025-06-11T18:30:00-06:00"),
+            _event("e2", "2025-06-11T20:00:00-06:00", "2025-06-11T21:00:00-06:00"),
+        ]
+        gaps = find_gaps(events, min_gap_minutes=0, workday_start="08:00", workday_end="18:00")
+        assert len(gaps) == 0
+
+    def test_workday_none_returns_all_gaps(self):
+        events = [
+            _event("e1", "2025-06-11T06:00:00-06:00", "2025-06-11T07:00:00-06:00"),
+            _event("e2", "2025-06-11T20:00:00-06:00", "2025-06-11T21:00:00-06:00"),
+        ]
+        gaps = find_gaps(events, min_gap_minutes=0)
+        assert len(gaps) == 1
+        assert gaps[0].minutes == 780  # 13 hours
+
 
 class TestToCompact:
     def test_compact_conversion(self):

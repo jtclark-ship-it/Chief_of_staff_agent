@@ -42,7 +42,7 @@ def get_calendar_service():
             "token_uri": creds.token_uri,
             "client_id": creds.client_id,
             "client_secret": creds.client_secret,
-            "scopes": creds.scopes,
+            "scopes": list(creds.scopes) if creds.scopes else [],
             "expiry": creds.expiry.isoformat() if creds.expiry else None,
         })
 

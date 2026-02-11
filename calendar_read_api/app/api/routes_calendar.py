@@ -170,7 +170,7 @@ def get_snapshot(
     summary = compute_summary(events)
     compact = to_compact(events)
     conflicts = find_conflicts(events)
-    gaps = find_gaps(events, min_gap_minutes=min_gap_minutes)
+    gaps = find_gaps(events, min_gap_minutes=min_gap_minutes, workday_start=workday_start, workday_end=workday_end)
 
     tz = timezone or settings.DEFAULT_TIMEZONE
     logger.info(
