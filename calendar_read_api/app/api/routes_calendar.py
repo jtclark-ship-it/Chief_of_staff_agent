@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query
+from googleapiclient.errors import HttpError
 
 from app.auth.dependencies import get_calendar_service
 from app.config import get_settings
@@ -26,7 +27,19 @@ router = APIRouter(prefix="/v1", tags=["calendar"])
 
 @router.get("/calendars", response_model=CalendarsResponse)
 def get_calendars(service=Depends(get_calendar_service)):
-    raw = list_calendars(service)
+    logger = get_logger()
+    try:
+        raw = list_calendars(service)
+    except HttpError as exc:
+        if exc.resp.status == 403:
+            logger.warning(
+                "calendarList.list returned 403 (missing calendar.readonly scope), "
+                "falling back to primary calendar only"
+            )
+            return CalendarsResponse(calendars=[
+                CalendarEntry(calendar_id="primary", summary="Primary"),
+            ])
+        raise
     calendars = [
         CalendarEntry(
             calendar_id=c.get("id", ""),
